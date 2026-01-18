@@ -7,7 +7,7 @@ Minimal Shiny app to code open-ended survey responses with a theme list.
 1. Install packages (if needed):
 
 ```
-install.packages(c("shiny", "dotenv", "readr", "readxl", "writexl", "tibble", "dplyr", "purrr", "stringr", "httr2", "rlang"))
+install.packages(c("shiny", "dotenv", "readxl", "writexl", "tibble", "dplyr", "purrr", "stringr", "httr2", "rlang"))
 ```
 
 2. Set your OpenAI API key:
@@ -30,5 +30,5 @@ shiny::runApp()
 
 ## Files
 
-- `app.R` Shiny UI to upload data, optionally generate themes, and download coded output as Excel.
-- `Functions/code_gpt.R` and `Functions/theme_gpt.R` accept data frames or `.csv`/`.xlsx`/`.xls` file paths.
+- `app.R` Shiny UI with two steps: generate themes, then code responses.
+- `Functions/code_gpt.R` and `Functions/theme_gpt.R` accept data frames or `.xlsx`/`.xls` file paths.

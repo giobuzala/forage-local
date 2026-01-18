@@ -6,7 +6,7 @@
 #' - If the `theme_list` argument includes a `Description` column, its text is incorporated as additional coding instructions.
 #' - Additional custom instructions can also be supplied through the `instructions` argument.
 #' 
-#' @param data A data frame containing the survey data, or a path to a `.csv`, `.xlsx`, or `.xls` file.
+#' @param data A data frame containing the survey data, or a path to a `.xlsx` or `.xls` file.
 #' @param x The open-ended variable to be coded.
 #' @param theme_list A data frame with at least two columns: `Code` and `Bin`.
 #' @param id_var The respondent ID variable.
@@ -30,7 +30,7 @@
 code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 100, model = "gpt-4o", instructions = NULL) {
   # Check required packages ----
   
-  required_pkgs <- c("rlang", "tibble", "dplyr", "purrr", "stringr", "httr2", "readr", "readxl")
+  required_pkgs <- c("rlang", "tibble", "dplyr", "purrr", "stringr", "httr2", "readxl")
   missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_pkgs) > 0) {
     stop("These packages are required but not installed: ",
@@ -63,9 +63,8 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
     if (is.data.frame(data)) return(data)
     if (is.character(data) && length(data) == 1) {
       ext <- tolower(tools::file_ext(data))
-      if (ext == "csv") return(readr::read_csv(data, show_col_types = FALSE))
       if (ext %in% c("xlsx", "xls")) return(readxl::read_excel(data))
-      stop("Unsupported file type: .", ext, ". Please upload a .csv, .xlsx, or .xls file.", call. = FALSE)
+      stop("Unsupported file type: .", ext, ". Please upload a .xlsx or .xls file.", call. = FALSE)
     }
     stop("`data` must be a data frame or a file path.", call. = FALSE)
   }
