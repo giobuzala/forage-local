@@ -2,6 +2,7 @@ library(shiny)
 library(shinyjs)
 
 # Environment loading ----
+# Loads API keys or other secrets from .env if present
 
 load_env <- function() {
   if (file.exists(".env")) {
@@ -22,6 +23,7 @@ source("Functions/theme_gpt.R")
 
 # Helpers ----
 
+# Reads uploaded Excel files
 read_input_file <- function(path) {
   ext <- tolower(tools::file_ext(path))
   if (ext %in% c("xlsx", "xls")) {
@@ -34,6 +36,7 @@ read_input_file <- function(path) {
   )
 }
 
+# Parses optional number-of-themes input
 parse_n_themes <- function(x) {
   if (is.null(x)) return(NULL)
   x <- trimws(x)
@@ -48,13 +51,16 @@ parse_n_themes <- function(x) {
 ui <- fluidPage(
   useShinyjs(),
   
+  # CSS
   tags$head(
     tags$style(HTML("
 
-      /* ===== GLOBAL ===== */
+      /* =====================================================
+         GLOBAL BASE STYLES
+         ===================================================== */
 
       html {
-        font-size: 16px;
+        font-size: 16px; /* Establishes rem scale */
       }
 
       body {
@@ -63,12 +69,18 @@ ui <- fluidPage(
         font-size: 1rem;
       }
 
+      /* =====================================================
+         LAYOUT CONTAINER
+         ===================================================== */
+
       .container {
         max-width: 760px;
-        margin: 56px auto;
+        margin: 56px auto; /* Centers content with vertical spacing */
       }
 
-      /* ===== HEADINGS ===== */
+      /* =====================================================
+         HEADINGS
+         ===================================================== */
 
       h2 {
         font-size: 3rem;
@@ -89,7 +101,9 @@ ui <- fluidPage(
         margin-right: 8px;
       }
 
-      /* ===== TEXT ===== */
+      /* =====================================================
+         TEXT STYLES
+         ===================================================== */
 
       .lead {
         font-size: 1.25rem;
@@ -103,7 +117,9 @@ ui <- fluidPage(
         line-height: 1.6;
       }
 
-      /* ===== PANELS ===== */
+      /* =====================================================
+         PANELS
+         ===================================================== */
 
       .panel {
         border: 1px solid #6b7280;
@@ -113,16 +129,42 @@ ui <- fluidPage(
         background: #ffffff;
       }
       
+      /* Add vertical spacing between stacked select inputs */
+      .panel .shiny-input-container + .shiny-input-container {
+        margin-top: 14px;
+      }
+        
+        /* Add spacing after the last input in a group (below Open-ended response) */
+      .panel .shiny-input-container:last-of-type {
+        margin-bottom: 18px;
+      }
+
       .spacer {
         height: 15px;
       }
 
-      /* ===== FORM ELEMENTS ===== */
+      /* Remove spacing added by input-group */
+      .panel .input-group {
+        margin-bottom: 16px;
+      }
+
+      /* Fully collapse file upload progress container */
+      .shiny-file-input-progress {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* =====================================================
+         FORM ELEMENTS
+         ===================================================== */
 
       label {
         display: block;
         font-size: 1.05rem;
         font-weight: 500;
+        margin-top: 20px;
         margin-bottom: 10px;
       }
 
@@ -137,24 +179,14 @@ ui <- fluidPage(
         font-size: 1rem;
       }
 
-      /* Remove Bootstrap spacing under inputs inside panels */
+      /* Removes Bootstrap default spacing below inputs */
       .panel .form-group {
         margin-bottom: 0;
       }
 
-      /* ===== CHECKBOX ===== */
-
-      .panel .checkbox {
-        margin-top: 12px;
-      }
-
-      .panel .checkbox label {
-        font-size: 1rem;
-        font-weight: 500;
-        margin-bottom: 0;
-      }
-
-      /* ===== BUTTONS ===== */
+      /* =====================================================
+         BUTTONS
+         ===================================================== */
 
       .btn {
         font-size: 0.95rem;
@@ -176,7 +208,29 @@ ui <- fluidPage(
         color: #ffffff;
       }
 
-      /* ===== STATUS ===== */
+      /* Disabled button states */
+      .btn:disabled,
+      .btn.disabled {
+        background-color: #e5e7eb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
+        cursor: not-allowed;
+        opacity: 1;
+      }
+
+      .btn:disabled:hover,
+      .btn.disabled:hover,
+      .btn:disabled:focus,
+      .btn.disabled:focus {
+        background-color: #e5e7eb;
+        border-color: #e5e7eb;
+        color: #9ca3af;
+        box-shadow: none;
+      }
+
+      /* =====================================================
+         STATUS BANNER
+         ===================================================== */
 
       .notice {
         font-size: 0.95rem;
@@ -189,7 +243,9 @@ ui <- fluidPage(
         display: inline-block;
       }
 
-      /* ===== INSTRUCTION LIST ===== */
+      /* =====================================================
+         INSTRUCTION LIST
+         ===================================================== */
 
       .panel ol {
         margin: 4px 0;
@@ -199,15 +255,15 @@ ui <- fluidPage(
     "))
   ),
   
+  # MAIN CONTENT CONTAINER
   div(
     class = "container",
     
+    # App title & tagline
     h2("forage"),
-    p(
-      class = "lead",
-      "AI-assisted open-ended coding agent"
-    ),
+    p(class = "lead", "AI-assisted open-ended coding agent"),
     
+    # High-level workflow overview
     div(
       class = "panel",
       tags$ol(
@@ -228,10 +284,10 @@ ui <- fluidPage(
       )
     ),
     
+    # Global status banner
     uiOutput("status_banner"),
     
-    # Step 1 ----
-    
+    # STEP 1 — DATA UPLOAD
     div(
       class = "panel",
       h4(tags$span("Step 1.", class = "step-num"), "Upload survey data"),
@@ -239,43 +295,39 @@ ui <- fluidPage(
         class = "subtle",
         "Upload an Excel file that includes an ID column and an open-ended response column."
       ),
-      div(class = "spacer"),
       fileInput("data_file", "Survey file", accept = c(".xlsx", ".xls")),
       uiOutput("column_selectors")
     ),
     
-    # Step 2 ----
-    
+    # STEP 2 — THEME GENERATION
     div(
       class = "panel",
       h4(tags$span("Step 2.", class = "step-num"), "Generate themes"),
       p(class = "subtle", "Generate a theme list from your open-ended responses."),
       textInput("n_themes", "Number of themes", value = ""),
       div(class = "spacer"),
-      tags$small(class = "subtle", "Leave blank to let the app decide the number of themes."),
+      tags$small(class = "subtle", "Leave blank to let the app decide."),
       div(class = "spacer"),
       actionButton("run_themes", "Generate theme list", class = "btn-primary"),
       div(class = "spacer"),
       uiOutput("download_themes_ui")
     ),
     
-    # Step 3 ----
-    
+    # STEP 3 — CODING
     div(
       class = "panel",
       h4(tags$span("Step 3.", class = "step-num"), "Code responses"),
       p(
         class = "subtle",
         "Use the generated themes or upload an existing theme list.
-         As a best practice, download and review the generated themes before uploading them for coding."
+         As a best practice, review generated themes before coding."
       ),
       p(
         class = "subtle",
         "Results are returned as an Excel file with coded responses and a theme list."
       ),
       fileInput("theme_file", "Theme list", accept = c(".xlsx", ".xls")),
-      tags$small(class = "subtle", "Leave empty to let the app generate themes."),
-      checkboxInput("use_generated", "Use generated themes", value = TRUE),
+      tags$small(class = "subtle", "Leave empty to use the generated theme list."),
       div(class = "spacer"),
       actionButton("run", "Code responses", class = "btn-primary"),
       div(class = "spacer"),
@@ -291,7 +343,9 @@ server <- function(input, output, session) {
   coded_data <- reactiveVal(NULL)
   generated_themes <- reactiveVal(NULL)
   theme_used <- reactiveVal(NULL)
-  status_text <- reactiveVal("Waiting for input.")
+  status_text <- reactiveVal("Ready to upload survey data.")
+  
+  set_status <- function(msg) status_text(msg)
   
   data_df <- reactive({
     req(input$data_file)
@@ -316,13 +370,24 @@ server <- function(input, output, session) {
     div(class = "notice", tags$strong("Status: "), status_text())
   })
   
+  # Button state + ready-state messaging
   observe({
     toggleState("run_themes", !is.null(input$data_file))
     toggleState("run", !is.null(generated_themes()) || !is.null(theme_df()))
+    
+    if (is.null(input$data_file)) {
+      set_status("Ready to upload survey data.")
+    } else if (is.null(generated_themes())) {
+      set_status("Ready to generate themes.")
+    } else if (is.null(coded_data())) {
+      set_status("Ready to code responses.")
+    }
   })
   
+  # Theme generation
   observeEvent(input$run_themes, {
     req(data_df(), input$response_col)
+    set_status("Generating themes…")
     
     withProgress(
       message = "Analyzing responses",
@@ -336,29 +401,35 @@ server <- function(input, output, session) {
             sample = NULL
           ),
           error = function(e) {
-            status_text(e$message)
+            set_status(paste("Error:", e$message))
             NULL
           }
         )
         
         if (!is.null(result)) {
           generated_themes(result)
-          status_text("Themes generated. You can download them or proceed to coding.")
+          set_status("Themes generated. Review or proceed to coding.")
         }
       }
     )
   })
   
+  # Coding
   observeEvent(input$run, {
     req(data_df(), input$id_col, input$response_col)
+    set_status("Coding responses…")
     
     withProgress(
       message = "Coding responses",
-      detail = "Assigning themes to each response...",
+      detail = "Assigning themes...",
       {
         result <- tryCatch(
           {
-            theme_list <- if (isTRUE(input$use_generated)) generated_themes() else theme_df()
+            theme_list <- if (!is.null(generated_themes())) {
+              generated_themes()
+            } else {
+              theme_df()
+            }
             
             if (is.null(theme_list)) {
               stop("Please generate or upload a theme list first.", call. = FALSE)
@@ -378,19 +449,20 @@ server <- function(input, output, session) {
             )
           },
           error = function(e) {
-            status_text(e$message)
+            set_status(paste("Error:", e$message))
             NULL
           }
         )
         
         if (!is.null(result)) {
           coded_data(result)
-          status_text("Coding complete. Download your results below.")
+          set_status("Coding complete. Download your results below.")
         }
       }
     )
   })
   
+  # Downloads
   output$download_themes_ui <- renderUI({
     req(generated_themes())
     downloadButton("download_themes", "Download theme list", class = "btn-download")
@@ -398,9 +470,7 @@ server <- function(input, output, session) {
   
   output$download_themes <- downloadHandler(
     filename = function() "Theme List.xlsx",
-    content = function(file) {
-      writexl::write_xlsx(generated_themes(), file)
-    }
+    content = function(file) writexl::write_xlsx(generated_themes(), file)
   )
   
   output$download_coded_ui <- renderUI({
