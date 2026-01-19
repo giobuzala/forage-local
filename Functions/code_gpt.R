@@ -27,7 +27,7 @@
 #' 
 #' @export
 
-code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 100, model = "gpt-4o", instructions = NULL) {
+code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 100, model = "gpt-4o-mini", instructions = NULL) {
   # Check required packages ----
   
   required_pkgs <- c("rlang", "tibble", "dplyr", "purrr", "stringr", "httr2", "readxl")

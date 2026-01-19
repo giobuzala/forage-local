@@ -46,23 +46,26 @@ parse_n_themes <- function(x) {
   n
 }
 
-# UI ----
+# UI/UX ----
 
 ui <- fluidPage(
   useShinyjs(),
   
-  # CSS
+  # CSS ----
+  
   tags$head(
     tags$style(HTML("
 
       /* =====================================================
-         GLOBAL BASE STYLES
+         BASE DOCUMENT STYLES
          ===================================================== */
 
+      /* Establish base font size so rem units scale predictably */
       html {
-        font-size: 16px; /* Establishes rem scale */
+        font-size: 16px;
       }
 
+      /* Global body typography and color */
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         color: #1f2933;
@@ -70,18 +73,20 @@ ui <- fluidPage(
       }
 
       /* =====================================================
-         LAYOUT CONTAINER
+         MAIN PAGE CONTAINER
          ===================================================== */
 
+      /* Centers app and limits line length for readability */
       .container {
         max-width: 760px;
-        margin: 56px auto; /* Centers content with vertical spacing */
+        margin: 56px auto;
       }
 
       /* =====================================================
-         HEADINGS
+         HEADINGS & TITLES
          ===================================================== */
 
+      /* App title */
       h2 {
         font-size: 3rem;
         font-weight: 700;
@@ -89,28 +94,32 @@ ui <- fluidPage(
         margin-bottom: 14px;
       }
 
+      /* Section headings (Step 1 / 2 / 3 titles) */
       h4 {
         font-size: 1.55rem;
         font-weight: 600;
         margin-bottom: 20px;
       }
 
+      /* Bold step number preceding section titles */
       .step-num {
         font-size: 1.55rem;
         font-weight: 600;
-        margin-right: 8px;
+        margin-right: 5px;
       }
 
       /* =====================================================
-         TEXT STYLES
+         TEXT / COPY STYLES
          ===================================================== */
 
+      /* Main tagline under app title */
       .lead {
         font-size: 1.25rem;
         color: #4b5563;
         margin-bottom: 24px;
       }
 
+      /* Helper / instructional copy */
       .subtle {
         font-size: 0.95rem;
         color: #6b7280;
@@ -118,9 +127,10 @@ ui <- fluidPage(
       }
 
       /* =====================================================
-         PANELS
+         PANEL CONTAINERS
          ===================================================== */
 
+      /* Shared styling for all step panels */
       .panel {
         border: 1px solid #6b7280;
         padding: 18px 26px;
@@ -128,27 +138,30 @@ ui <- fluidPage(
         margin-top: 16px;
         background: #ffffff;
       }
-      
-      /* Add vertical spacing between stacked select inputs */
+
+      /* Adds vertical spacing between stacked inputs (ID + response selects, etc.) */
       .panel .shiny-input-container + .shiny-input-container {
         margin-top: 14px;
       }
-        
-        /* Add spacing after the last input in a group (below Open-ended response) */
+
+      /* Adds breathing room after the final input in a group
+         (e.g., below Open-ended response column selector) */
       .panel .shiny-input-container:last-of-type {
         margin-bottom: 18px;
       }
 
+      /* Simple vertical spacer utility */
       .spacer {
         height: 15px;
       }
 
-      /* Remove spacing added by input-group */
+      /* Normalizes spacing added by Bootstrap input groups */
       .panel .input-group {
         margin-bottom: 16px;
       }
 
-      /* Fully collapse file upload progress container */
+      /* Completely hides Shiny's file upload progress bar
+         (prevents layout jumping after file selection) */
       .shiny-file-input-progress {
         display: none !important;
         height: 0 !important;
@@ -160,6 +173,7 @@ ui <- fluidPage(
          FORM ELEMENTS
          ===================================================== */
 
+      /* Input labels */
       label {
         display: block;
         font-size: 1.05rem;
@@ -168,6 +182,7 @@ ui <- fluidPage(
         margin-bottom: 10px;
       }
 
+      /* Text inputs & dropdowns */
       .shiny-input-container input,
       .shiny-input-container select {
         font-size: 0.95rem;
@@ -175,11 +190,13 @@ ui <- fluidPage(
         height: auto;
       }
 
+      /* File input text sizing */
       input[type='file'] {
         font-size: 1rem;
       }
 
-      /* Removes Bootstrap default spacing below inputs */
+      /* Removes Bootstrap's default bottom margin under form groups
+         (spacing is handled manually above) */
       .panel .form-group {
         margin-bottom: 0;
       }
@@ -188,27 +205,37 @@ ui <- fluidPage(
          BUTTONS
          ===================================================== */
 
+      /* Base button styling */
       .btn {
         font-size: 0.95rem;
         font-weight: 600;
         padding: 10px 22px;
       }
 
+     /* Primary action buttons */
       .btn-primary,
       .btn-primary:hover,
       .btn-primary:focus,
       .btn-primary:active {
         background-color: #1f2933;
         border-color: #1f2933;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      
+      .btn-primary:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
       }
 
+      /* Download buttons */
       .btn-download {
         background-color: #065f46;
         border-color: #065f46;
         color: #ffffff;
       }
 
-      /* Disabled button states */
+      /* Disabled button appearance */
       .btn:disabled,
       .btn.disabled {
         background-color: #e5e7eb;
@@ -218,6 +245,7 @@ ui <- fluidPage(
         opacity: 1;
       }
 
+      /* Prevent hover/focus effects on disabled buttons */
       .btn:disabled:hover,
       .btn.disabled:hover,
       .btn:disabled:focus,
@@ -229,9 +257,10 @@ ui <- fluidPage(
       }
 
       /* =====================================================
-         STATUS BANNER
+         STATUS / NOTICE BANNER
          ===================================================== */
 
+      /* Status indicator shown under workflow overview */
       .notice {
         font-size: 0.95rem;
         font-weight: 500;
@@ -244,9 +273,10 @@ ui <- fluidPage(
       }
 
       /* =====================================================
-         INSTRUCTION LIST
+         INSTRUCTION LISTS
          ===================================================== */
 
+      /* Ordered list spacing inside panels */
       .panel ol {
         margin: 4px 0;
         padding-left: 22px;
@@ -255,65 +285,48 @@ ui <- fluidPage(
     "))
   ),
   
-  # MAIN CONTENT CONTAINER
+  # MAIN CONTENT CONTAINER ----
+  
   div(
     class = "container",
     
-    # App title & tagline
     h2("forage"),
     p(class = "lead", "AI-assisted open-ended coding agent"),
     
-    # High-level workflow overview
     div(
       class = "panel",
       tags$ol(
-        tags$li(
-          strong("Upload your survey file:"),
-          " Select the file containing your open-ended survey responses."
-        ),
-        tags$li(
-          strong("Generate a theme list:"),
-          " The app will analyze responses and generate themes with clear labels and descriptions.
-          You can download the list for review or proceed to the next step using it as generated."
-        ),
-        tags$li(
-          strong("Code responses and download results:"),
-          " If you are not using the theme list generated in the previous step, upload your own theme list.
-          Each response will be assigned one or more themes, and you can download the coded file."
-        )
+        tags$li(strong("Upload your survey file:"), " Select the file containing your open-ended survey responses."),
+        tags$li(strong("Generate a theme list:"), " The app will analyze responses and generate themes with clear labels and descriptions.
+                                                   You can download the list for review or proceed to the next step using it as generated."),
+        tags$li(strong("Code responses and download results:"), " If you are not using the theme list generated in the previous step, upload your own theme list.
+                                                                 Each response will be assigned one or more themes, and you can download the coded file.")
       )
     ),
     
-    # Global status banner
     uiOutput("status_banner"),
     
-    # STEP 1 — DATA UPLOAD
     div(
       class = "panel",
       h4(tags$span("Step 1.", class = "step-num"), "Upload survey data"),
-      tags$small(
-        class = "subtle",
-        "Upload an Excel file that includes an ID column and an open-ended response column."
-      ),
+      tags$small(class = "subtle", "Upload an Excel file that includes an ID column and an open-ended response column."),
       fileInput("data_file", "Survey file", accept = c(".xlsx", ".xls")),
       uiOutput("column_selectors")
     ),
     
-    # STEP 2 — THEME GENERATION
     div(
       class = "panel",
       h4(tags$span("Step 2.", class = "step-num"), "Generate themes"),
       p(class = "subtle", "Generate a theme list from your open-ended responses."),
       textInput("n_themes", "Number of themes", value = ""),
       div(class = "spacer"),
-      tags$small(class = "subtle", "Leave blank to let the app decide."),
+      tags$small(class = "subtle", "Leave blank to let the app decide the number of themes."),
       div(class = "spacer"),
       actionButton("run_themes", "Generate theme list", class = "btn-primary"),
       div(class = "spacer"),
       uiOutput("download_themes_ui")
     ),
     
-    # STEP 3 — CODING
     div(
       class = "panel",
       h4(tags$span("Step 3.", class = "step-num"), "Code responses"),
@@ -339,60 +352,112 @@ ui <- fluidPage(
 # Server ----
 
 server <- function(input, output, session) {
-  
+  # REACTIVE STATE HOLDERS ----
+
+  # Stores the final coded survey data (set after successful coding)
   coded_data <- reactiveVal(NULL)
+  
+  # Stores the theme list generated by GPT (Step 2)
   generated_themes <- reactiveVal(NULL)
+  
+  # Stores the theme list actually used for coding (uploaded theme list OR generated themes)
   theme_used <- reactiveVal(NULL)
+  
+  # Stores the text shown in the status banner at the top of the app
   status_text <- reactiveVal("Ready to upload survey data.")
   
+  # Helper function to update the status banner
   set_status <- function(msg) status_text(msg)
   
+  
+  # DATA INPUT REACTIVES ----
+
+  # Reads the uploaded survey file
+  # Re-runs automatically whenever a new file is uploaded
   data_df <- reactive({
-    req(input$data_file)
+    req(input$data_file) # Block until a file exists
     read_input_file(input$data_file$datapath)
   })
   
+  # Reads the uploaded theme list file (optional)
+  # Returns NULL if no theme file is uploaded
   theme_df <- reactive({
     if (is.null(input$theme_file)) return(NULL)
     read_input_file(input$theme_file$datapath)
   })
   
+  
+  # UI OUTPUTS ----
+
+  # Dynamically populate ID / response column selectors
+  # based on the uploaded survey file
   output$column_selectors <- renderUI({
     req(data_df())
     cols <- names(data_df())
+    
     tagList(
       selectInput("id_col", "ID column", choices = cols),
       selectInput("response_col", "Open-ended response column", choices = cols)
     )
   })
   
+  # Render the status banner shown near the top of the app
+  # This is the ONLY place status_text() is displayed
   output$status_banner <- renderUI({
     div(class = "notice", tags$strong("Status: "), status_text())
   })
   
-  # Button state + ready-state messaging
+  
+  # BUTTON ENABLE/DISABLE + GLOBAL STATUS LOGIC ----
+
+  # This observer runs whenever any referenced reactive changes
+  # It acts like a simple state machine for the app
   observe({
+    
+    # Enable "Generate themes" once survey data exists
     toggleState("run_themes", !is.null(input$data_file))
+    
+    # Enable "Code responses" once either:
+    # - Generated themes exist, OR
+    # - An uploaded theme list exists
     toggleState("run", !is.null(generated_themes()) || !is.null(theme_df()))
     
+    # Status priority is IMPORTANT here!
+    # The first matching condition wins.
+    
     if (is.null(input$data_file)) {
+      # Nothing uploaded yet
       set_status("Ready to upload survey data.")
-    } else if (is.null(generated_themes())) {
-      set_status("Ready to generate themes.")
-    } else if (is.null(coded_data())) {
-      set_status("Ready to code responses.")
+      
+    } else if (!is.null(coded_data())) {
+      # Coding has successfully completed
+      set_status("Coding complete. Download your results below.")
+      
+    } else if (!is.null(generated_themes())) {
+      # Themes have been generated but coding not yet run
+      set_status("Themes generated. Download to review themes or proceed to coding.")
+      
+    } else {
+      # Survey uploaded, but no themes generated or uploaded yet
+      set_status("Ready to generate themes or code responses.")
     }
   })
   
-  # Theme generation
+  
+  # STEP 2 — THEME GENERATION ----
+
   observeEvent(input$run_themes, {
     req(data_df(), input$response_col)
+    
+    # Immediate feedback before long-running operation
     set_status("Generating themes…")
     
+    # Show Shiny's modal progress indicator while GPT runs
     withProgress(
-      message = "Analyzing responses",
+      message = "Analyzing responses:",
       detail = "Generating theme list...",
       {
+        # Run GPT theme generation with error handling
         result <- tryCatch(
           theme_gpt(
             data = data_df(),
@@ -401,46 +466,76 @@ server <- function(input, output, session) {
             sample = NULL
           ),
           error = function(e) {
+            # If GPT errors, update status and stop quietly
             set_status(paste("Error:", e$message))
             NULL
           }
         )
         
+        # Only update state if generation succeeded
         if (!is.null(result)) {
           generated_themes(result)
-          set_status("Themes generated. Review or proceed to coding.")
+          set_status("Themes generated. Download to review themes or proceed to coding.")
         }
       }
     )
   })
   
-  # Coding
+  
+  # STEP 3 — CODING RESPONSES ----
+
   observeEvent(input$run, {
     req(data_df(), input$id_col, input$response_col)
+    
+    # Immediate feedback before coding starts
     set_status("Coding responses…")
     
     withProgress(
-      message = "Coding responses",
+      message = "Coding responses:",
       detail = "Assigning themes...",
       {
         result <- tryCatch(
           {
-            theme_list <- if (!is.null(generated_themes())) {
+            # Determine which theme list to use
+            # Priority:
+            # 1. Uploaded theme list
+            # 2. Generated themes
+            theme_list <- if (!is.null(theme_df())) {
+              theme_df()
+            } else if (!is.null(generated_themes())) {
               generated_themes()
             } else {
-              theme_df()
+              stop(
+                "Invariant violation: Coding triggered without a theme list.",
+                call. = FALSE
+              )
             }
             
-            if (is.null(theme_list)) {
-              stop("Please generate or upload a theme list first.", call. = FALSE)
-            }
-            
+            # Validate required columns in theme list
             if (!all(c("Code", "Bin") %in% names(theme_list))) {
-              stop("Theme list format is invalid.", call. = FALSE)
+              stop(
+                HTML(
+                  paste(
+                    "<strong>Theme list format is invalid.</strong><br><br>",
+                    "Your uploaded theme list must contain the following columns:<br><br>",
+                    "• <strong>Code</strong> – a <u>numeric</u> theme ID (e.g., 1, 2, 3)<br>",
+                    "• <strong>Bin</strong> – the short theme code (e.g., \"Trust\", \"Price\", \"Service\")<br>",
+                    "• <strong>Description</strong> <em>(optional, but recommended)</em> – a brief explanation ",
+                    "of what the theme represents<br><br>",
+                    "<strong>Your file currently contains the following columns:</strong><br>",
+                    paste(names(theme_list), collapse = ", "),
+                    "<br><br>",
+                    "Please rename your columns and try again."
+                  )
+                ),
+                call. = FALSE
+              )
             }
             
+            # Store the theme list actually used for coding
             theme_used(theme_list)
             
+            # Run the GPT-based coding function
             code_gpt(
               data = data_df(),
               x = input$response_col,
@@ -448,12 +543,23 @@ server <- function(input, output, session) {
               theme_list = theme_list
             )
           },
+          
+          # Error handler for coding
           error = function(e) {
-            set_status(paste("Error:", e$message))
+            # Show a visible error notification (HTML-rendered)
+            showNotification(
+              ui = HTML(e$message),
+              type = "error",
+              duration = NULL
+            )
+            
+            # Update status banner to error state
+            set_status("Error: Theme list format is invalid.")
             NULL
           }
         )
         
+        # If coding succeeded, store results and update status
         if (!is.null(result)) {
           coded_data(result)
           set_status("Coding complete. Download your results below.")
@@ -462,7 +568,9 @@ server <- function(input, output, session) {
     )
   })
   
-  # Downloads
+  # DOWNLOAD HANDLERS ----
+
+  # Show theme list download button only after themes exist
   output$download_themes_ui <- renderUI({
     req(generated_themes())
     downloadButton("download_themes", "Download theme list", class = "btn-download")
@@ -470,9 +578,12 @@ server <- function(input, output, session) {
   
   output$download_themes <- downloadHandler(
     filename = function() "Theme List.xlsx",
-    content = function(file) writexl::write_xlsx(generated_themes(), file)
+    content = function(file) {
+      writexl::write_xlsx(generated_themes(), file)
+    }
   )
   
+  # Show coded data download button only after coding succeeds
   output$download_coded_ui <- renderUI({
     req(coded_data())
     downloadButton("download", "Download coded file", class = "btn-download")
