@@ -176,6 +176,7 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", i
   
   # Add codes
   df <- df %>%
+    dplyr::filter(Bin != "Description") %>% # Drop accidental header-like row
     dplyr::mutate(Code = dplyr::row_number()) %>%
     dplyr::select(Code, Bin, Description)
   
@@ -193,11 +194,6 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", i
   result <- dplyr::bind_rows(standard, df) %>%
     dplyr::mutate(Code = as.integer(Code)) %>%
     dplyr::relocate(Code, Bin, Description)
-  
-  # Remove accidental header-like row and renumber codes
-  result <- result %>%
-    dplyr::filter(Bin != "Description") %>%
-    dplyr::mutate(Code = dplyr::row_number())
   
   # Attach metadata
   attr(result, "x_name") <- x_name
