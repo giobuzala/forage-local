@@ -1,9 +1,12 @@
+# Libraries ----
+
 library(shiny)
 library(shinyjs)
 library(tidyverse)
 library(openxlsx)
 
-# Environment loading ----
+
+# Environment ----
 
 # Loads API keys or other secrets from .env if present
 load_env <- function() {
@@ -20,9 +23,9 @@ load_env <- function() {
 
 load_env()
 
-# Functions
-source("Functions/code_gpt.R")
-source("Functions/theme_gpt.R")
+# Load functions
+source("../Functions/code_gpt.R")
+source("../Functions/theme_gpt.R")
 
 
 # Helpers ----
@@ -293,6 +296,8 @@ ui <- fluidPage(
   # Main content container ----
   
   div(
+    # Instructions
+    
     class = "container",
     
     h2("forage"),
@@ -311,6 +316,8 @@ ui <- fluidPage(
     
     uiOutput("status_banner"),
     
+    # Step 1
+    
     div(
       class = "panel",
       h4(tags$span("Step 1.", class = "step-num"), "Upload survey data"),
@@ -318,6 +325,8 @@ ui <- fluidPage(
       fileInput("data_file", "Survey file", accept = c(".xlsx", ".xls")),
       uiOutput("column_selectors")
     ),
+    
+    # Step 2
     
     div(
       class = "panel",
@@ -331,6 +340,8 @@ ui <- fluidPage(
       div(class = "spacer"),
       uiOutput("download_themes_ui")
     ),
+    
+    # Step 3
     
     div(
       class = "panel",
@@ -582,38 +593,30 @@ server <- function(input, output, session) {
   })
   
   output$download_themes <- downloadHandler(
+    
+    # File name
     filename = function() "Theme List.xlsx",
+    
+    # File content
     content = function(file) {
+      # Input validation and data ----
       
       req(generated_themes())
       themes <- generated_themes()
       
+      
+      # Workbook ----
+      
       wb <- openxlsx::createWorkbook()
       
       # Styles
-      header_style <- openxlsx::createStyle(
-        textDecoration = "bold",
-        wrapText = TRUE,
-        valign = "center"
-      )
+      header_style <- openxlsx::createStyle(textDecoration = "bold", wrapText = TRUE, valign = "center")
       
-      even_row_style <- openxlsx::createStyle(
-        fgFill = "#F2F2F2",
-        wrapText = TRUE,
-        border = "TopBottomLeftRight",
-        borderColour = "#E0E0E0",
-        valign = "center"
-      )
+      even_row_style <- openxlsx::createStyle(fgFill = "#F2F2F2", wrapText = TRUE, border = "TopBottomLeftRight", borderColour = "#E0E0E0", valign = "center")
       
-      odd_row_style <- openxlsx::createStyle(
-        fgFill = "#FFFFFF",
-        wrapText = TRUE,
-        border = "TopBottomLeftRight",
-        borderColour = "#E0E0E0",
-        valign = "center"
-      )
+      odd_row_style <- openxlsx::createStyle(fgFill = "#FFFFFF", wrapText = TRUE, border = "TopBottomLeftRight", borderColour = "#E0E0E0", valign = "center")
       
-      # Pad to 30 rows
+      # Pad theme list to 30 rows
       max_rows <- 30
       n_pad <- max(0, max_rows - nrow(themes))
       
@@ -626,40 +629,32 @@ server <- function(input, output, session) {
         )
       )
       
-      # Codes sheet
+      
+      # Codes sheet ----
+      
       openxlsx::addWorksheet(wb, "Codes")
       openxlsx::writeData(wb, "Codes", codes_sheet, withFilter = FALSE)
       
-      # Header style
-      openxlsx::addStyle(
-        wb, "Codes",
-        header_style,
-        rows = 1,
-        cols = 1:ncol(codes_sheet),
-        gridExpand = TRUE
-      )
+      # Header formatting
+      openxlsx::addStyle(wb, "Codes", header_style, rows = 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE)
       
       # Zebra striping
       for (i in seq_len(nrow(codes_sheet))) {
         style <- if (i %% 2 == 0) even_row_style else odd_row_style
-        openxlsx::addStyle(
-          wb, "Codes",
-          style,
-          rows = i + 1,
-          cols = 1:ncol(codes_sheet),
-          gridExpand = TRUE,
-          stack = TRUE
-        )
+        
+        openxlsx::addStyle(wb, "Codes", style, rows = i + 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE, stack = TRUE)
       }
       
       # Column widths
       openxlsx::setColWidths(wb, "Codes", cols = 2, widths = 50)
       openxlsx::setColWidths(wb, "Codes", cols = 3, widths = 80)
       
+      
+      # Save workbook ----
+      
       openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
     }
   )
-  
   
   # Show coded data download button only after coding succeeds
   output$download_coded_ui <- renderUI({
@@ -668,125 +663,85 @@ server <- function(input, output, session) {
   })
   
   output$download <- downloadHandler(
-    filename = function() {
-      "Coded Responses.xlsx"
-    },
+    
+    # File name
+    filename = function() "Coded Responses.xlsx",
+    
+    # File content
     content = function(file) {
-      
       # Workbook ----
       
       wb <- openxlsx::createWorkbook()
       
-      # Styles ----
+      # Styles
+      header_style <- openxlsx::createStyle(textDecoration = "bold", wrapText = TRUE, valign = "center")
       
-      header_style <- openxlsx::createStyle(
-        textDecoration = "bold",
-        wrapText = TRUE,
-        valign = "center"
-      )
+      even_row_style <- openxlsx::createStyle(fgFill = "#F2F2F2", wrapText = TRUE, border = "TopBottomLeftRight", borderColour = "#E0E0E0")
       
-      even_row_style <- openxlsx::createStyle(
-        fgFill = "#F2F2F2",
-        wrapText = TRUE,
-        border = "TopBottomLeftRight",
-        borderColour = "#E0E0E0"
-      )
-      
-      odd_row_style <- openxlsx::createStyle(
-        fgFill = "#FFFFFF",
-        wrapText = TRUE,
-        border = "TopBottomLeftRight",
-        borderColour = "#E0E0E0"
-      )
+      odd_row_style <- openxlsx::createStyle(fgFill = "#FFFFFF", wrapText = TRUE, border = "TopBottomLeftRight", borderColour = "#E0E0E0")
       
       vert_center_style <- openxlsx::createStyle(valign = "center")
       
+      
       # Coded Responses sheet ----
       
-      coded <- coded_data() %>%
-        dplyr::mutate(`Bin(s)` = NA_character_)
+      coded <- coded_data()
+        # %>% dplyr::mutate(`Bin(s)` = NA_character_)
       
       openxlsx::addWorksheet(wb, "Coded Responses")
-      openxlsx::writeData(
-        wb,
-        sheet = "Coded Responses",
-        x = coded,
-        withFilter = TRUE
-      )
+      openxlsx::writeData(wb, sheet = "Coded Responses", x = coded, withFilter = TRUE)
       
-      # Header
-      openxlsx::addStyle(
-        wb,
-        "Coded Responses",
-        header_style,
-        rows = 1,
-        cols = 1:ncol(coded),
-        gridExpand = TRUE
-      )
+      # Header formatting
+      openxlsx::addStyle(wb, "Coded Responses", header_style, rows = 1, cols = 1:ncol(coded), gridExpand = TRUE)
       
-      # Alternating rows + vertical centering
+      # Alternating rows and vertical centering
       for (i in seq_len(nrow(coded))) {
         style <- if (i %% 2 == 0) even_row_style else odd_row_style
         
-        openxlsx::addStyle(
-          wb,
-          "Coded Responses",
-          style,
-          rows = i + 1,
-          cols = 1:ncol(coded),
-          gridExpand = TRUE
-        )
+        openxlsx::addStyle(wb, "Coded Responses", style, rows = i + 1, cols = 1:ncol(coded), gridExpand = TRUE)
         
-        openxlsx::addStyle(
-          wb,
-          "Coded Responses",
-          vert_center_style,
-          rows = i + 1,
-          cols = 1:ncol(coded),
-          gridExpand = TRUE,
-          stack = TRUE
-        )
+        openxlsx::addStyle(wb, "Coded Responses", vert_center_style, rows = i + 1, cols = 1:ncol(coded), gridExpand = TRUE, stack = TRUE)
       }
       
       openxlsx::freezePane(wb, "Coded Responses", firstRow = TRUE)
       
-      # Bin(s) lookup ----
-      
-      bin_col  <- which(names(coded) == "Bin(s)")
+      # # Bin(s) lookup
       code_col <- which(names(coded) == "Code(s)")
-      
-      openxlsx::writeData(
-        wb,
-        "Coded Responses",
-        x = paste0(
-          '=IF(', openxlsx::int2col(code_col), '2="", "", ',
-          'TEXTJOIN("; ", , MAP(TEXTSPLIT(',
-          openxlsx::int2col(code_col), '2, ","), LAMBDA(code,',
-          ' IF(TRIM(code)="", "", TRIM(IFERROR(',
-          ' XLOOKUP(TRIM(code)+0, ',
-          '\'Theme List\'!$A$2:$A$100, ',
-          '\'Theme List\'!$B$2:$B$100), ',
-          '"CODE " & TRIM(code) & " DOES NOT EXIST")))))))'
-        ),
-        startCol = bin_col,
-        startRow = 2
-      )
-      
-      openxlsx::conditionalFormatting(
-        wb,
-        "Coded Responses",
-        cols = bin_col,
-        rows = 2:(nrow(coded) + 1),
-        rule = "DOES NOT EXIST",
-        type = "contains",
-        style = openxlsx::createStyle(fontColour = "#FF0000")
-      )
+      bin_col  <- which(names(coded) == "Bin(s)")
+      # 
+      # openxlsx::writeData(
+      #   wb,
+      #   "Coded Responses",
+      #   x = paste0(
+      #     '=IF(', openxlsx::int2col(code_col), '2="", "", ',
+      #     'TEXTJOIN("; ", , MAP(TEXTSPLIT(',
+      #     openxlsx::int2col(code_col), '2, ","), LAMBDA(code,',
+      #     ' IF(TRIM(code)="", "", TRIM(IFERROR(',
+      #     ' XLOOKUP(TRIM(code)+0, ',
+      #     '\'Theme List\'!$A$2:$A$100, ',
+      #     '\'Theme List\'!$B$2:$B$100), ',
+      #     '"CODE " & TRIM(code) & " DOES NOT EXIST")))))))'
+      #   ),
+      #   startCol = bin_col,
+      #   startRow = 2
+      # )
+      # 
+      # openxlsx::conditionalFormatting(
+      #   wb,
+      #   "Coded Responses",
+      #   cols = bin_col,
+      #   rows = 2:(nrow(coded) + 1),
+      #   rule = "DOES NOT EXIST",
+      #   type = "contains",
+      #   style = openxlsx::createStyle(fontColour = "#FF0000")
+      # )
       
       # Column widths
-      openxlsx::setColWidths(wb, "Coded Responses", cols = 1, widths = 14)    # ID
-      openxlsx::setColWidths(wb, "Coded Responses", cols = 2, widths = 100)   # Response
+      openxlsx::setColWidths(wb, "Coded Responses", cols = 1, widths = 14)
+      openxlsx::setColWidths(wb, "Coded Responses", cols = 2, widths = 100)
       openxlsx::setColWidths(wb, "Coded Responses", cols = code_col, widths = 20)
       openxlsx::setColWidths(wb, "Coded Responses", cols = bin_col,  widths = 100)
+      
       
       # Theme List sheet ----
       
@@ -797,45 +752,18 @@ server <- function(input, output, session) {
         )
       
       openxlsx::addWorksheet(wb, "Theme List")
-      openxlsx::writeData(
-        wb,
-        "Theme List",
-        themes,
-        withFilter = FALSE
-      )
+      openxlsx::writeData(wb, "Theme List", themes, withFilter = FALSE)
       
-      # Header
-      openxlsx::addStyle(
-        wb,
-        "Theme List",
-        header_style,
-        rows = 1,
-        cols = 1:ncol(themes),
-        gridExpand = TRUE
-      )
+      # Header formatting
+      openxlsx::addStyle(wb, "Theme List", header_style, rows = 1, cols = 1:ncol(themes), gridExpand = TRUE)
       
-      # Alternating rows + vertical center
+      # Alternating rows and vertical centering
       for (i in seq_len(nrow(themes))) {
         style <- if (i %% 2 == 0) even_row_style else odd_row_style
         
-        openxlsx::addStyle(
-          wb,
-          "Theme List",
-          style,
-          rows = i + 1,
-          cols = 1:ncol(themes),
-          gridExpand = TRUE
-        )
+        openxlsx::addStyle(wb, "Theme List", style, rows = i + 1, cols = 1:ncol(themes), gridExpand = TRUE)
         
-        openxlsx::addStyle(
-          wb,
-          "Theme List",
-          vert_center_style,
-          rows = i + 1,
-          cols = 1:ncol(themes),
-          gridExpand = TRUE,
-          stack = TRUE
-        )
+        openxlsx::addStyle(wb, "Theme List", vert_center_style, rows = i + 1, cols = 1:ncol(themes), gridExpand = TRUE, stack = TRUE)
       }
       
       # Column widths
@@ -843,8 +771,7 @@ server <- function(input, output, session) {
       openxlsx::setColWidths(wb, "Theme List", cols = 3, widths = 80)
       openxlsx::setColWidths(wb, "Theme List", cols = 4:5, widths = 14)
       
-      # Count & percentage formulas ----
-      
+      # Count and percentage formulas
       count_formula <- paste0(
         'IF($A', 2:(nrow(themes) + 1), '="", "", ',
         'SUMPRODUCT(--(ISNUMBER(SEARCH("," & $A', 2:(nrow(themes) + 1),
@@ -873,15 +800,8 @@ server <- function(input, output, session) {
       openxlsx::writeFormula(wb, "Theme List", count_formula, startCol = 4, startRow = 2)
       openxlsx::writeFormula(wb, "Theme List", perc_formula,  startCol = 5, startRow = 2)
       
-      openxlsx::addStyle(
-        wb,
-        "Theme List",
-        openxlsx::createStyle(numFmt = "0%"),
-        rows = 2:(nrow(themes) + 1),
-        cols = 5,
-        gridExpand = TRUE,
-        stack = TRUE
-      )
+      openxlsx::addStyle(wb, "Theme List", openxlsx::createStyle(numFmt = "0%"), rows = 2:(nrow(themes) + 1), cols = 5, gridExpand = TRUE, stack = TRUE)
+      
       
       # Save workbook ----
       
