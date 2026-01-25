@@ -44,22 +44,22 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", i
   
   `%>%` <- dplyr::`%>%`
   
-  # Check API key
-  api_key <- Sys.getenv("OPENAI_API_KEY")
-  if (is.null(api_key) || api_key == "") {
-    stop(
-      "OpenAI API key is not set.\n\n",
-      "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
-      "1. Temporarily (for this session):\n\n",
-      "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
-      "2. Permanently:\n\n",
-      "   Add the following line to your .Renviron file:\n",
-      "   OPENAI_API_KEY='your_api_key'\n\n",
-      "   You can locate your .Renviron file with:\n",
-      "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
-      call. = FALSE
-    )
-  }
+  # # Check API key
+  # api_key <- Sys.getenv("OPENAI_API_KEY")
+  # if (is.null(api_key) || api_key == "") {
+  #   stop(
+  #     "OpenAI API key is not set.\n\n",
+  #     "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
+  #     "1. Temporarily (for this session):\n\n",
+  #     "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
+  #     "2. Permanently:\n\n",
+  #     "   Add the following line to your .Renviron file:\n",
+  #     "   OPENAI_API_KEY='your_api_key'\n\n",
+  #     "   You can locate your .Renviron file with:\n",
+  #     "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
+  #     call. = FALSE
+  #   )
+  # }
   
   # Load data (data frame or file path)
   read_input_data <- function(data) {
