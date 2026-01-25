@@ -33,7 +33,7 @@
 theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", instructions = NULL) {
   # Check required packages ----
   
-  required_pkgs <- c("rlang", "tibble", "dplyr", "purrr", "stringr", "httr2", "readxl")
+  required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")
   missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_pkgs) > 0) {
     stop("These packages are required but not installed: ",
@@ -44,22 +44,22 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", i
   
   `%>%` <- dplyr::`%>%`
   
-  # # Check API key
-  # api_key <- Sys.getenv("OPENAI_API_KEY")
-  # if (is.null(api_key) || api_key == "") {
-  #   stop(
-  #     "OpenAI API key is not set.\n\n",
-  #     "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
-  #     "1. Temporarily (for this session):\n\n",
-  #     "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
-  #     "2. Permanently:\n\n",
-  #     "   Add the following line to your .Renviron file:\n",
-  #     "   OPENAI_API_KEY='your_api_key'\n\n",
-  #     "   You can locate your .Renviron file with:\n",
-  #     "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
-  #     call. = FALSE
-  #   )
-  # }
+  # Check API key
+  api_key <- Sys.getenv("OPENAI_API_KEY")
+  if (is.null(api_key) || api_key == "") {
+    stop(
+      "OpenAI API key is not set.\n\n",
+      "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
+      "1. Temporarily (for this session):\n\n",
+      "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
+      "2. Permanently:\n\n",
+      "   Add the following line to your .Renviron file:\n",
+      "   OPENAI_API_KEY='your_api_key'\n\n",
+      "   You can locate your .Renviron file with:\n",
+      "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
+      call. = FALSE
+    )
+  }
   
   # Load data (data frame or file path)
   read_input_data <- function(data) {
@@ -74,22 +74,17 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", i
   
   data <- read_input_data(data)
   
-  # Capture variable expressions
-  if (is.character(x) && length(x) == 1) {
-    x_name <- x
-  } else {
-    x_name <- rlang::as_name(rlang::enquo(x))
-  }
-  if (!(x_name %in% names(data))) stop("Variable ", x_name, " was not found in the dataset.", call. = FALSE)
+  # Validate that x exists in dataset
+  if (!(x %in% names(data))) stop("Variable ", x, " was not found in the dataset.", call. = FALSE)
   
   # Identify question label
-  q_label <- attr(data[[x_name]], "label", exact = TRUE)
-  if (is.null(q_label)) q_label <- x_name
+  q_label <- attr(data[[x]], "label", exact = TRUE)
+  if (is.null(q_label)) q_label <- x
   
   # Extract valid responses
-  responses <- data[[x_name]]
+  responses <- data[[x]]
   responses <- responses[!is.na(responses) & stringr::str_trim(responses) != ""]
-  if (length(responses) == 0) stop("No valid responses found in variable ", x_name, ".", call. = FALSE)
+  if (length(responses) == 0) stop("No valid responses found in variable ", x, ".", call. = FALSE)
   
   # Determine sample size
   if (is.null(sample) || sample >= length(responses)) {

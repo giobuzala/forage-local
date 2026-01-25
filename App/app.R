@@ -623,24 +623,24 @@ server <- function(input, output, session) {
         )
       )
       
-      # Codes sheet ----
+      # Theme List sheet ----
       
-      openxlsx::addWorksheet(wb, "Codes")
-      openxlsx::writeData(wb, "Codes", codes_sheet, withFilter = FALSE)
+      openxlsx::addWorksheet(wb, "Theme List")
+      openxlsx::writeData(wb, "Theme List", codes_sheet, withFilter = FALSE)
       
       # Header formatting
-      openxlsx::addStyle(wb, "Codes", header_style, rows = 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE)
+      openxlsx::addStyle(wb, "Theme List", header_style, rows = 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE)
       
       # Zebra striping
       for (i in seq_len(nrow(codes_sheet))) {
         style <- if (i %% 2 == 0) even_row_style else odd_row_style
         
-        openxlsx::addStyle(wb, "Codes", style, rows = i + 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE, stack = TRUE)
+        openxlsx::addStyle(wb, "Theme List", style, rows = i + 1, cols = 1:ncol(codes_sheet), gridExpand = TRUE, stack = TRUE)
       }
       
       # Column widths
-      openxlsx::setColWidths(wb, "Codes", cols = 2, widths = 50)
-      openxlsx::setColWidths(wb, "Codes", cols = 3, widths = 80)
+      openxlsx::setColWidths(wb, "Theme List", cols = 2, widths = 50)
+      openxlsx::setColWidths(wb, "Theme List", cols = 3, widths = 80)
       
       # Save workbook ----
       

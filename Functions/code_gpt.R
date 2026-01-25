@@ -17,10 +17,10 @@
 #'
 #' @export
 
-code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 100, model = "gpt-4o-mini", instructions = NULL) {
+code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, model = "gpt-4o-mini", instructions = NULL) {
   # Check required packages ----
   
-  required_pkgs <- c("rlang", "tibble", "dplyr", "purrr", "stringr", "httr2", "readxl")
+  required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")
   missing_pkgs <- required_pkgs[!vapply(required_pkgs, requireNamespace, logical(1), quietly = TRUE)]
   if (length(missing_pkgs) > 0) {
     stop("These packages are required but not installed: ",
@@ -31,22 +31,22 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
   
   `%>%` <- dplyr::`%>%`
   
-  # # Check API key
-  # api_key <- Sys.getenv("OPENAI_API_KEY")
-  # if (is.null(api_key) || api_key == "") {
-  #   stop(
-  #     "OpenAI API key is not set.\n\n",
-  #     "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
-  #     "1. Temporarily (for this session):\n\n",
-  #     "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
-  #     "2. Permanently:\n\n",
-  #     "   Add the following line to your .Renviron file:\n",
-  #     "   OPENAI_API_KEY='your_api_key'\n\n",
-  #     "   You can locate your .Renviron file with:\n",
-  #     "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
-  #     call. = FALSE
-  #   )
-  # }
+  # Check API key
+  api_key <- Sys.getenv("OPENAI_API_KEY")
+  if (is.null(api_key) || api_key == "") {
+    stop(
+      "OpenAI API key is not set.\n\n",
+      "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
+      "1. Temporarily (for this session):\n\n",
+      "   Sys.setenv(OPENAI_API_KEY = 'your_api_key')\n\n",
+      "2. Permanently:\n\n",
+      "   Add the following line to your .Renviron file:\n",
+      "   OPENAI_API_KEY='your_api_key'\n\n",
+      "   You can locate your .Renviron file with:\n",
+      "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
+      call. = FALSE
+    )
+  }
   
   # Load data (data frame or file path)
   read_input_data <- function(data) {
@@ -61,26 +61,13 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
   
   data <- read_input_data(data)
   
-  # Capture variable expressions
-  if (is.character(x) && length(x) == 1) {
-    x_name <- x
-  } else {
-    x_name <- rlang::as_name(rlang::enquo(x))
-  }
-  
-  if (is.character(id_var) && length(id_var) == 1) {
-    id_name <- id_var
-  } else {
-    id_name <- rlang::as_name(rlang::enquo(id_var))
-  }
-  
   # Validate that x and id_var exist in dataset
-  if (!(x_name %in% names(data))) stop("Variable ", x_name, " was not found in the dataset.", call. = FALSE)
-  if (!(id_name %in% names(data))) stop("ID variable ", id_name, " was not found in the dataset.", call. = FALSE)
+  if (!(x %in% names(data))) stop("Variable ", x, " was not found in the dataset.", call. = FALSE)
+  if (!(id_var %in% names(data))) stop("ID variable ", id_var, " was not found in the dataset.", call. = FALSE)
   
   # Identify question label
-  q_label <- attr(data[[x_name]], "label", exact = TRUE)
-  if (is.null(q_label)) q_label <- x_name
+  q_label <- attr(data[[x]], "label", exact = TRUE)
+  if (is.null(q_label)) q_label <- x
   
   # Build code list
   code_text <- paste0(
@@ -99,8 +86,8 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
   
   # Limit to first n responses
   if (is.null(n)) {n <- nrow(data)}
-  responses <- head(data[[x_name]], n)
-  ids <- head(data[[id_name]], n)
+  responses <- head(data[[x]], n)
+  ids <- head(data[[id_var]], n)
   
   # Identify valid responses
   valid_idx <- which(!is.na(responses) & stringr::str_trim(responses) != "")
@@ -127,31 +114,31 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
           temperature = 0,
           seed = 123,
           messages = list(
-          list(
-            role = "system",
-            content = paste(
-              "You are a survey researcher coding open-ended responses based on the detailed code descriptions.",
-              "Follow these rules strictly:",
+            list(
+              role = "system",
+              content = paste(
+                "You are a survey researcher coding open-ended responses based on the detailed code descriptions.",
+                "Follow these rules strictly:",
                 "1. Do not skip any rows — each response must receive at least one code.",
                 "2. Only use numeric codes from the provided list; no text, symbols, or letters.",
                 "3. If the same code number appears more than once for a response, list it only once.",
                 "4. If multiple codes apply, separate them with commas.",
-              "If a response is written in a language other than English, translate it into English first."
+                "If a response is written in a language other than English, translate it into English first."
               )
             ),
-          list(
-            role = "user",
-            content = paste(
-              "Question label: ", q_label, "\n",
-              code_text,
-              "\n\nResponses:\n", resp_text,
-              "\n\nReturn one line per response in the same order, in the format:\n1. codes\n2. codes\n3. codes\n...",
-              instr_text
+            list(
+              role = "user",
+              content = paste(
+                "Question label: ", q_label, "\n",
+                code_text,
+                "\n\nResponses:\n", resp_text,
+                "\n\nReturn one line per response in the same order, in the format:\n1. codes\n2. codes\n3. codes\n...",
+                instr_text
               )
             )
           )
-          )
-        ) %>%
+        )
+      ) %>%
       httr2::req_perform()
     
     result <- httr2::resp_body_json(req)
@@ -182,7 +169,7 @@ code_gpt <- function(data, x, theme_list, id_var = Vrid, n = NULL, batch_size = 
   
   # Create table
   result <- tibble::tibble(
-    !!id_name := ids,
+    !!id_var := ids,
     !!q_label := responses,
     `Code(s)` = coded_raw,
     `Bin(s)` = coded_bins
