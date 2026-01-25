@@ -30,7 +30,7 @@
 #' 
 #' @export
 
-theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o-mini", instructions = NULL) {
+theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o", instructions = NULL) {
   # Check required packages ----
   
   required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")

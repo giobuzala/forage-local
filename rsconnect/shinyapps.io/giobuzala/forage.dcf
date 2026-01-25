@@ -1,0 +1,13 @@
+name: forage
+title:
+username: giobuzala
+account: giobuzala
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16505757
+bundleId: 11492670
+url: https://giobuzala.shinyapps.io/forage/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: www/favicon_io.zip

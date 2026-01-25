@@ -24,8 +24,8 @@ load_env <- function() {
 load_env()
 
 # Load functions
-source("../Functions/code_gpt.R")
-source("../Functions/theme_gpt.R")
+source("Functions/code_gpt.R")
+source("Functions/theme_gpt.R")
 
 
 # Helpers ----
@@ -57,12 +57,17 @@ parse_n_themes <- function(x) {
 # UI/UX ----
 
 ui <- fluidPage(
-  useShinyjs(),
-  
-  # CSS styling ----
   
   tags$head(
-    tags$style(HTML("
+    
+  # favicon ----
+    
+  tags$link(rel = "icon", href = "favicon.ico"),
+  tags$link(rel = "shortcut icon", href = "favicon.ico"),
+    
+  # CSS styling ----
+    
+  tags$style(HTML("
 
       /* =====================================================
          BASE DOCUMENT STYLES
@@ -318,7 +323,31 @@ ui <- fluidPage(
 
       /* Tighter top margin for lists */
       .panel-info ol {
-        margin-top: 8px;
+      margin-top: 8px;
+      }
+      
+      /* =====================================================
+         CREDITS / FOOTER
+         ===================================================== */
+
+      /* Container for author / attribution text */
+      .credits {
+        text-align: center;
+        font-size: 0.9rem;
+        color: #4b5563;
+        margin-top: 32px;
+      }
+
+      /* Links inside the credits section */
+      .credits a {
+        color: #4b5563;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      /* Hover state for credit links */
+      .credits a:hover {
+        text-decoration: underline;
       }
 
     "))
@@ -413,6 +442,20 @@ ui <- fluidPage(
       p(
         "This tool is designed to accelerate qualitative analysis, ",
         tags$strong("not to replace expert review or methodological oversight.")
+      )
+    ),
+    
+    # Credits
+    
+    div(
+      class = "credits",
+      tags$p(
+        "Created by ",
+        tags$strong("Giorgi Buzaladze"),
+        " · ",
+        tags$a(href = "https://giobuzala.com/", target = "_blank", "Website"),
+        " · ",
+        tags$a(href = "https://www.linkedin.com/in/giorgibuzaladze/", target = "_blank", "LinkedIn")
       )
     )
   )
