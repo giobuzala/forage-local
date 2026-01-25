@@ -55,8 +55,7 @@ This tool is designed to accelerate qualitative analysis, not to replace expert 
 
 ```
 install.packages(c(
-  "shiny", "shinyjs", "dotenv", "tidyverse", "openxlsx", "readxl",
-  "writexl", "tibble", "dplyr", "purrr", "stringr", "httr2", "rlang"
+  "dotenv", "dplyr", "httr2", "openxlsx", "purrr", "readxl", "shiny", "shinyjs", "stringr"
 ))
 ```
 
