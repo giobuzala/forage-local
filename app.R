@@ -24,8 +24,8 @@ load_env <- function() {
 load_env()
 
 # Load functions
-source("Functions/code_gpt.R")
-source("Functions/theme_gpt.R")
+source("functions/code_gpt.R")
+source("functions/theme_gpt.R")
 
 
 # Helpers ----
