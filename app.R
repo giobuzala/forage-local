@@ -60,6 +60,10 @@ ui <- fluidPage(
   
   tags$head(
     
+  # Page title ----
+  
+  tags$title("forage"),
+    
   # favicon ----
     
   tags$link(rel = "icon", href = "favicon.ico"),
