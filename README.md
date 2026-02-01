@@ -64,7 +64,7 @@ install.packages(c(
 ))
 ```
 
-2. Install and start Ollama, then pull a model:
+2. Install and start [Ollama](https://ollama.com/), then pull a model:
 
 ```bash
 ollama run llama3.2:3b
