@@ -1,16 +1,27 @@
 # forage
 
-An interactive Shiny app for AI-assisted coding of open-ended survey responses.
+A locally hosted, interactive Shiny app for secure, AI-assisted coding of open-ended survey responses.
 
 ## Overview
 
-forage is an interactive Shiny application for coding open-ended survey responses into structured qualitative themes using a local LLM via Ollama.
+forage is an interactive Shiny application for coding open-ended survey responses into structured qualitative themes using a **locally hosted LLM via Ollama**, with all processing performed on the user’s machine.
 
 It is designed for survey researchers and analysts who want a faster, more consistent, and more transparent way to generate code frames and apply them to large volumes of verbatim responses without losing human control over the process.
 
 The workflow is explicitly human-in-the-loop: generated theme lists can be reviewed, edited, or replaced before coding begins.
 
-**Data stays local**: All processing happens on your machine. No data is sent to external APIs.
+**Data stays local**: forage is fully self-hosted. All processing occurs on your machine, and no survey data is transmitted to external APIs or cloud services.
+
+## Data security
+
+forage is **self-hosted and locally executed**. The Shiny app, language model, and all data processing run entirely on your machine via Ollama.
+
+   - No external APIs – responses are never sent to OpenAI, cloud services, or third-party servers
+   - No data egress – survey files, verbatims, and coded outputs remain on disk under your control
+   - Network-isolatable – the app can be run offline or behind a firewall
+   - Model transparency – the exact local model used for theme generation and coding is fully known and configurable
+
+This makes forage suitable for working with **confidential, proprietary, or pre-release survey data**, and for environments with strict data-handling or client privacy requirements.
 
 ## How it works
 
