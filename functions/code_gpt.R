@@ -1,7 +1,7 @@
-#' **Code open-ended survey responses using the OpenAI API**
+#' **Code open-ended survey responses using a local LLM**
 #'
 #' @description
-#' This function submits open-ended survey responses to the OpenAI API and returns a dataset with the original responses, assigned codes, and bins from a provided code list.
+#' This function submits open-ended survey responses to a local Ollama server and returns a dataset with the original responses, assigned codes, and bins from a provided code list.
 #' 
 #' @param data A data frame containing the survey data, or a path to a `.xlsx` or `.xls` file.
 #' @param x The open-ended variable to be coded.
@@ -9,7 +9,7 @@
 #' @param id_var The respondent ID variable.
 #' @param n Optional integer; number of responses to code. Defaults to all rows. Useful for testing coding quality without coding every response.
 #' @param batch_size Integer; number of responses per API call. Defaults to `100`.
-#' @param model Character string; the OpenAI model to use. Defaults to `gpt-4o`.
+#' @param model Character string; the Ollama model to use. Defaults to `llama3.2:3b`.
 #' @param instructions Optional string; additional instructions for coding.
 #'
 #' @return
@@ -17,7 +17,7 @@
 #'
 #' @export
 
-code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, model = "gpt-4o", instructions = NULL) {
+code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, model = "llama3.2:3b", instructions = NULL) {
   # Check required packages ----
   
   required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")
@@ -31,22 +31,10 @@ code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, mo
   
   `%>%` <- dplyr::`%>%`
   
-  # Check API key
-  api_key <- Sys.getenv("OPENAI_API_KEY")
-  if (is.null(api_key) || api_key == "") {
-    stop(
-      "OpenAI API key is not set.\n\n",
-      "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
-      "1. Temporarily (for this session):\n\n",
-      "   Sys.setenv(OPENAI_API_KEY='your_api_key')\n\n",
-      "2. Permanently:\n\n",
-      "   Add the following line to your .Renviron file:\n",
-      "   OPENAI_API_KEY='your_api_key'\n\n",
-      "   You can locate your .Renviron file with:\n",
-      "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
-      call. = FALSE
-    )
-  }
+  # Ollama endpoint config
+  base_url <- Sys.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
+  base_url <- sub("/+$", "", base_url)
+  model <- Sys.getenv("LLM_MODEL", model)
   
   # Load data (data frame or file path)
   read_input_data <- function(data) {
@@ -70,6 +58,10 @@ code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, mo
   if (is.null(q_label)) q_label <- x
   
   # Build code list
+  if (!("Description" %in% names(theme_list))) {
+    theme_list <- dplyr::mutate(theme_list, Description = NA_character_)
+  }
+
   code_text <- paste0(
     "Available codes:\n",
     paste(
@@ -93,21 +85,21 @@ code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, mo
   valid_idx <- which(!is.na(responses) & stringr::str_trim(responses) != "")
   valid_responses <- responses[valid_idx]
   
-  # OpenAI API request ----
+  # Ollama API request ----
   
   batches <- split(seq_along(valid_responses), ceiling(seq_along(valid_responses) / batch_size))
   
-  batch_results <- purrr::map(batches, function(idx) {
+  batch_results <- vector("list", length(batches))
+  
+  for (batch_num in seq_along(batches)) {
+    idx <- batches[[batch_num]]
     these_resps <- valid_responses[idx]
     
     resp_text <- paste0(seq_along(these_resps), ". ", these_resps, collapse = "\n")
     instr_text <- if (!is.null(instructions)) paste0("\n\nAdditional instructions: ", instructions) else ""
     
-    req <- httr2::request("https://api.openai.com/v1/chat/completions") %>%
-      httr2::req_headers(
-        "Authorization" = paste("Bearer", api_key),
-        "Content-Type" = "application/json"
-      ) %>%
+    req <- httr2::request(paste0(base_url, "/chat/completions")) %>%
+      httr2::req_headers("Content-Type" = "application/json") %>%
       httr2::req_body_json(
         list(
           model = model,
@@ -139,18 +131,63 @@ code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, mo
           )
         )
       ) %>%
-      httr2::req_perform()
+      httr2::req_options(timeout = 120)
     
-    result <- httr2::resp_body_json(req)
-    raw_result <- result$choices[[1]]$message$content
+    resp <- tryCatch(
+      httr2::req_perform(req),
+      error = function(e) {
+        msg <- conditionMessage(e)
+        if (grepl("Failed to connect|Connection refused|could not connect|timeout", msg, ignore.case = TRUE)) {
+          stop(
+            paste0(
+              "Could not reach Ollama at ", base_url, ".\n\n",
+              "Make sure Ollama is running and the model is pulled:\n",
+              "  ollama run ", model, "\n\n",
+              "Then retry."
+            ),
+            call. = FALSE
+          )
+        }
+        stop(msg, call. = FALSE)
+      }
+    )
+    
+    status <- httr2::resp_status(resp)
+    if (status >= 400) {
+      body <- tryCatch(httr2::resp_body_json(resp), error = function(...) NULL)
+      detail <- if (!is.null(body$error$message)) body$error$message else ""
+      if (grepl("model.*not found", detail, ignore.case = TRUE)) {
+        stop(paste0("Model '", model, "' not found. Run: ollama run ", model), call. = FALSE)
+      }
+      stop(paste0("LLM request failed (HTTP ", status, "): ", detail), call. = FALSE)
+    }
+    
+    result <- httr2::resp_body_json(resp)
+    raw_result <- NULL
+    if (!is.null(result$choices) && length(result$choices) > 0) {
+      raw_result <- result$choices[[1]]$message$content
+    }
+    if (is.null(raw_result) || raw_result == "") {
+      stop(
+        paste0("LLM returned empty response. Ensure Ollama is running:\n  ollama run ", model),
+        call. = FALSE
+      )
+    }
     
     codes <- stringr::str_split(raw_result, "\n")[[1]]
     codes <- stringr::str_trim(codes)
     codes <- stringr::str_remove(codes, "^[0-9]+\\.\\s*")
-    codes
-  })
+    batch_results[[batch_num]] <- codes
+  }
   
   coded_valid <- unlist(batch_results)
+  
+  # Handle length mismatch - pad or truncate to match valid_idx length
+  if (length(coded_valid) < length(valid_idx)) {
+    coded_valid <- c(coded_valid, rep(NA_character_, length(valid_idx) - length(coded_valid)))
+  } else if (length(coded_valid) > length(valid_idx)) {
+    coded_valid <- coded_valid[seq_along(valid_idx)]
+  }
   
   # Insert NA back for invalid rows
   coded_raw <- rep(NA_character_, length(responses))
@@ -158,36 +195,44 @@ code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, mo
   
   # Output ----
   
-  # Add bins
-  coded_bins <- purrr::map_chr(coded_raw, function(c) {
+  # Valid codes from theme list
+
+  valid_codes <- theme_list$Code
+  
+  # Clean codes - filter to only valid codes
+  clean_codes <- function(x) {
+    if (is.na(x) || trimws(x) == "") return(NA_character_)
+    codes <- stringr::str_extract_all(x, "\\d+")[[1]]
+    codes <- suppressWarnings(as.numeric(codes))
+    codes <- codes[!is.na(codes)]
+    codes <- codes[codes %in% valid_codes]
+    if (length(codes) == 0) return(NA_character_)
+    codes <- unique(codes)
+    codes <- sort(codes)
+    paste(codes, collapse = ", ")
+  }
+  
+  # Get bins for codes
+  get_bins <- function(c) {
     if (is.na(c) || c == "") return(NA_character_)
-    codes_vec <- stringr::str_split(c, ",")[[1]] %>% stringr::str_trim()
-    bins_vec <- theme_list$Bin[match(as.numeric(codes_vec), theme_list$Code)]
+    codes_vec <- as.numeric(stringr::str_split(c, ",\\s*")[[1]])
+    bins_vec <- theme_list$Bin[match(codes_vec, theme_list$Code)]
     bins_vec <- bins_vec[!is.na(bins_vec)]
+    if (length(bins_vec) == 0) return(NA_character_)
     paste(bins_vec, collapse = "; ")
-  })
+  }
+  
+  # Apply cleaning
+  cleaned_codes <- vapply(coded_raw, clean_codes, character(1), USE.NAMES = FALSE)
+  cleaned_bins <- vapply(cleaned_codes, get_bins, character(1), USE.NAMES = FALSE)
   
   # Create table
   result <- tibble::tibble(
     !!id_var := ids,
     !!q_label := responses,
-    `Code(s)` = coded_raw,
-    `Bin(s)` = coded_bins
+    `Code(s)` = cleaned_codes,
+    `Bin(s)` = cleaned_bins
   )
-  
-  # Clean up
-  result <- result %>%
-    dplyr::mutate(
-      `Code(s)` = purrr::map_chr(`Code(s)`, function(x) {
-        if (is.na(x) || trimws(x) == "") return(NA_character_)
-        codes <- stringr::str_extract_all(x, "\\d+")[[1]] # Extract all numeric codes
-        codes <- suppressWarnings(as.numeric(codes)) # Convert to numeric, remove NAs
-        codes <- codes[!is.na(codes)]
-        codes <- unique(codes) # Deduplicate
-        codes <- sort(codes) # Sort
-        paste(codes, collapse = ", ")
-      })
-    )
   
   invisible(result)
 }

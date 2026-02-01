@@ -1,7 +1,3 @@
-# Ignore environment variables/API keys
-.Renviron
-.env
-
 # Ignore Excel files
 *.xlsx
 *.xls

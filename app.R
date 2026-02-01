@@ -6,23 +6,6 @@ library(dplyr)
 library(openxlsx)
 
 
-# Environment ----
-
-# Loads API keys or other secrets from .env if present
-load_env <- function() {
-  if (file.exists(".env")) {
-    if (!requireNamespace("dotenv", quietly = TRUE)) {
-      stop(
-        "Package 'dotenv' is required to load .env. Please install it with install.packages('dotenv').",
-        call. = FALSE
-      )
-    }
-    dotenv::load_dot_env(file = ".env")
-  }
-}
-
-load_env()
-
 # Load functions
 source("functions/code_gpt.R")
 source("functions/theme_gpt.R")
@@ -363,6 +346,7 @@ ui <- fluidPage(
     class = "container",
     h2("forage"),
     p(class = "lead", "AI-assisted open-ended coding agent"),
+    uiOutput("status_banner"),
     
     # Instructions
     

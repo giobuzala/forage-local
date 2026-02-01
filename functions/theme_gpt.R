@@ -1,13 +1,13 @@
-#' **Generate a thematic code list using the OpenAI API**
+#' **Generate a thematic code list using a local LLM**
 #'
 #' @description
-#' This function analyzes open-ended survey responses and automatically generates a set of thematic codes with descriptions.
+#' This function analyzes open-ended survey responses and automatically generates a set of thematic codes with descriptions using a local Ollama server.
 #'
 #' @param data A data frame containing the survey data, or a path to a `.xlsx` or `.xls` file.
 #' @param x The open-ended variable to analyze.
 #' @param n Integer; number of themes to return. If `NULL` (default), the model determines an appropriate number of themes based on the responses.
 #' @param sample Optional integer specifying the number of responses to sample for analysis. If `NULL`, all valid responses are used.
-#' @param model Character string; the OpenAI model to use. Defaults to `gpt-4o`.
+#' @param model Character string; the Ollama model to use. Defaults to `llama3.2:3b`.
 #' @param instructions Optional string; additional instructions for coding.
 #'
 #' @details
@@ -23,14 +23,14 @@
 #' 
 #' Use this function to create a `theme_list` for input into `code_gpt()`.
 #'
-#' **Note:** It’s best to review and refine the generated codes before using them in `code_gpt()`.
+#' **Note:** It's best to review and refine the generated codes before using them in `code_gpt()`.
 #'
 #' @return
 #' A table containing the generated thematic code list and their description. Standard codes (`Other`, `None`, `Don't know`) are included automatically.
 #' 
 #' @export
 
-theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o", instructions = NULL) {
+theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "llama3.2:3b", instructions = NULL) {
   # Check required packages ----
   
   required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")
@@ -44,22 +44,10 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o", instru
   
   `%>%` <- dplyr::`%>%`
   
-  # Check API key
-  api_key <- Sys.getenv("OPENAI_API_KEY")
-  if (is.null(api_key) || api_key == "") {
-    stop(
-      "OpenAI API key is not set.\n\n",
-      "Please generate one at https://platform.openai.com/ and set it using either of the following methods:\n\n",
-      "1. Temporarily (for this session):\n\n",
-      "   Sys.setenv(OPENAI_API_KEY='your_api_key')\n\n",
-      "2. Permanently:\n\n",
-      "   Add the following line to your .Renviron file:\n",
-      "   OPENAI_API_KEY='your_api_key'\n\n",
-      "   You can locate your .Renviron file with:\n",
-      "   file.path(Sys.getenv('HOME'), '.Renviron')\n",
-      call. = FALSE
-    )
-  }
+  # Ollama endpoint config
+  base_url <- Sys.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
+  base_url <- sub("/+$", "", base_url)
+  model <- Sys.getenv("LLM_MODEL", model)
   
   # Load data (data frame or file path)
   read_input_data <- function(data) {
@@ -104,13 +92,10 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o", instru
     n_text <- paste(n)
   }
   
-  # OpenAI API request ----
+  # Ollama API request ----
   
-  req <- httr2::request("https://api.openai.com/v1/chat/completions") %>%
-    httr2::req_headers(
-      "Authorization" = paste("Bearer", api_key),
-      "Content-Type" = "application/json"
-    ) %>%
+  req <- httr2::request(paste0(base_url, "/chat/completions")) %>%
+    httr2::req_headers("Content-Type" = "application/json") %>%
     httr2::req_body_json(list(
       model = model,
       temperature = 0,
@@ -139,32 +124,77 @@ theme_gpt <- function(data, x, n = NULL, sample = NULL, model = "gpt-4o", instru
         )
       )
     )) %>%
-    httr2::req_perform()
+    httr2::req_options(timeout = 120)
   
-  result <- httr2::resp_body_json(req)
-  text <- result$choices[[1]]$message$content
+  resp <- tryCatch(
+    httr2::req_perform(req),
+    error = function(e) {
+      msg <- conditionMessage(e)
+      if (grepl("Failed to connect|Connection refused|could not connect|timeout", msg, ignore.case = TRUE)) {
+        stop(
+          paste0(
+            "Could not reach Ollama at ", base_url, ".\n\n",
+            "Make sure Ollama is running and the model is pulled:\n",
+            "  ollama run ", model, "\n\n",
+            "Then retry."
+          ),
+          call. = FALSE
+        )
+      }
+      stop(msg, call. = FALSE)
+    }
+  )
+  
+  status <- httr2::resp_status(resp)
+  if (status >= 400) {
+    body <- tryCatch(httr2::resp_body_json(resp), error = function(...) NULL)
+    detail <- if (!is.null(body$error$message)) body$error$message else ""
+    if (grepl("model.*not found", detail, ignore.case = TRUE)) {
+      stop(paste0("Model '", model, "' not found. Run: ollama run ", model), call. = FALSE)
+    }
+    stop(paste0("LLM request failed (HTTP ", status, "): ", detail), call. = FALSE)
+  }
+  
+  result <- httr2::resp_body_json(resp)
+  text <- NULL
+  if (!is.null(result$choices) && length(result$choices) > 0) {
+    text <- result$choices[[1]]$message$content
+  }
+  if (is.null(text) || text == "") {
+    stop(
+      paste0("LLM returned empty response. Ensure Ollama is running:\n  ollama run ", model),
+      call. = FALSE
+    )
+  }
   
   # Output ----
   
-  # Parse GPT output
-  lines <- stringr::str_split(text, "\n")[[1]] %>% stringr::str_trim()
+  # Parse LLM output
+  lines <- stringr::str_split(text, "\n")[[1]]
+  lines <- stringr::str_trim(lines)
   lines <- lines[lines != ""]
   
-  df <- purrr::map_dfr(lines, function(line) {
+  # Build data frame row by row
+  rows <- vector("list", length(lines))
+  for (i in seq_along(lines)) {
+    line <- lines[[i]]
     parts <- strsplit(line, ",", fixed = TRUE)[[1]]
     if (length(parts) >= 2) {
-      tibble::tibble(
+      rows[[i]] <- tibble::tibble(
         Bin = stringr::str_trim(parts[1]),
         Description = stringr::str_trim(paste(parts[-1], collapse = ","))
       )
     } else {
-      tibble::tibble(Bin = parts[1], Description = NA_character_)
+      rows[[i]] <- tibble::tibble(Bin = stringr::str_trim(parts[1]), Description = NA_character_)
     }
-  })
+  }
+  
+  df <- dplyr::bind_rows(rows)
   
   # Add codes
   df <- df %>%
-    dplyr::filter(!(Bin %in% c("Bin", "Description") | Description %in% c("Bin", "Description"))) %>% # Drop accidental header-like row
+    dplyr::filter(!(Bin %in% c("Bin", "Description") | Description %in% c("Bin", "Description"))) %>%
+    dplyr::filter(!stringr::str_detect(Bin, "^Here are the")) %>%
     dplyr::mutate(Code = dplyr::row_number()) %>%
     dplyr::select(Code, Bin, Description)
   

@@ -1,22 +1,16 @@
-# [forage](https://giobuzala.shinyapps.io/forage/)
+# forage
 
 An interactive Shiny app for AI-assisted coding of open-ended survey responses.
 
 ## Overview
 
-forage is an interactive Shiny application for coding open-ended survey responses into structured qualitative themes using OpenAI’s language models.
+forage is an interactive Shiny application for coding open-ended survey responses into structured qualitative themes using a local LLM via Ollama.
 
 It is designed for survey researchers and analysts who want a faster, more consistent, and more transparent way to generate code frames and apply them to large volumes of verbatim responses without losing human control over the process.
 
 The workflow is explicitly human-in-the-loop: generated theme lists can be reviewed, edited, or replaced before coding begins.
 
-## Hosted app
-
-The live version of forage is available on *shinyapps.io*:
-
-```
-https://giobuzala.shinyapps.io/forage/
-```
+**Data stays local**: All processing happens on your machine. No data is sent to external APIs.
 
 ## How it works
 
@@ -51,29 +45,23 @@ This tool is designed to accelerate qualitative analysis, not to replace expert 
 
 ## To run locally
 
-1. Install packages:
+1. Install R packages:
 
-```
+```r
 install.packages(c(
-  "dotenv", "dplyr", "httr2", "openxlsx", "purrr", "readxl", "shiny", "shinyjs", "stringr"
+  "dplyr", "httr2", "openxlsx", "purrr", "readxl", "shiny", "shinyjs", "stringr", "tibble"
 ))
 ```
 
-2. Set your OpenAI API key using one of the following methods:
+2. Install and start Ollama, then pull a model:
 
-```
-Sys.setenv(OPENAI_API_KEY="your_api_key")
-```
-
-Or create a local `.Renviron` file in the project root:
-
-```
-OPENAI_API_KEY="your_api_key"
+```bash
+ollama run llama3.2:3b
 ```
 
 3. Start the app:
 
-```
+```r
 shiny::runApp("app.R")
 ```
 
