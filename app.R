@@ -6,9 +6,11 @@ library(dplyr)
 library(openxlsx)
 
 
+# Environment ----
+
 # Load functions
-source("functions/code_gpt.R")
-source("functions/theme_gpt.R")
+source("functions/code_ollama.R")
+source("functions/theme_ollama.R")
 
 
 # Helpers ----

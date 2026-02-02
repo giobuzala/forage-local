@@ -17,7 +17,7 @@
 #'
 #' @export
 
-code_gpt <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, model = "llama3.2:3b", instructions = NULL) {
+code_ollama <- function(data, x, theme_list, id_var, n = NULL, batch_size = 100, model = "llama3.2:3b", instructions = NULL) {
   # Check required packages ----
   
   required_pkgs <- c("tibble", "dplyr", "readxl", "purrr", "stringr", "httr2")
