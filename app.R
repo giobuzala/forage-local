@@ -346,8 +346,14 @@ ui <- fluidPage(
   
   div(
     class = "container",
+    
+    # Header
+    
     h2("forage"),
     p(class = "lead", "AI-assisted open-ended coding agent"),
+    
+    # Status banner
+    
     uiOutput("status_banner"),
     
     # Instructions
