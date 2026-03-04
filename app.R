@@ -432,7 +432,14 @@ ui <- fluidPage(
       p(
         "This tool is designed to accelerate qualitative analysis, ",
         tags$strong("not to replace expert review or methodological oversight.")
-      )
+      ),
+      div(class = "spacer"),
+      h5("Data security"),
+      p(HTML(paste0(
+        "forage is fully self-hosted and runs with a locally hosted LLM via ",
+        "<a href='https://ollama.com/' target='_blank' rel='noopener noreferrer'>Ollama</a>",
+        ". All processing occurs on the user's machine, and no survey data is transmitted to external APIs or cloud services."
+      )))
     ),
     
     # Credits
