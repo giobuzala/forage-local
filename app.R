@@ -118,7 +118,7 @@ ui <- fluidPage(
       .lead {
         font-size: 1.25rem;
         color: #4b5563;
-        margin-bottom: 24px;
+        margin-bottom: 30px;
       }
 
       /* Helper / instructional copy */
@@ -180,7 +180,7 @@ ui <- fluidPage(
         display: block;
         font-size: 1.05rem;
         font-weight: 500;
-        margin-top: 20px;
+        margin-top: 12px;
         margin-bottom: 10px;
       }
 
@@ -352,10 +352,6 @@ ui <- fluidPage(
     h2("forage"),
     p(class = "lead", "AI-assisted open-ended coding agent"),
     
-    # Status banner
-    
-    uiOutput("status_banner"),
-    
     # Instructions
     
     div(
@@ -375,6 +371,10 @@ ui <- fluidPage(
         )
       )
     ),
+    
+    # Status banner
+    
+    uiOutput("status_banner"),
     
     # Step 1
     
@@ -406,11 +406,18 @@ ui <- fluidPage(
     div(
       class = "panel",
       h4(tags$span("Step 3.", class = "step-num"), "Code responses"),
-      p(
+      p(class = "subtle", "Use the generated themes or upload an existing theme list."),
+      div(
         class = "subtle",
-        "Use the generated themes or upload an existing theme list.
-        As a best practice, review generated themes before coding."
+        "Your uploaded theme list must contain the following columns:",
+        tags$ul(
+          style = "margin-top: 12px;",
+          tags$li(tags$strong("Code"), " – a unique numeric code for each theme (e.g., 1, 2, 3)"),
+          tags$li(tags$strong("Bin"), " – a short descriptive label for the theme (e.g., Trust, Price, Service)"),
+          tags$li(tags$strong("Description"), " ", tags$em("(optional, but recommended)"), " – a brief explanation of what the theme represents")
+        )
       ),
+      p(class = "subtle", "As a best practice, review generated themes before coding."),
       p(class = "subtle", "Results are returned as an Excel file with coded responses and a theme list."),
       fileInput("theme_file", "Theme list", accept = c(".xlsx", ".xls")),
       tags$small(class = "subtle", "Leave empty to use the generated theme list."),
@@ -618,7 +625,7 @@ server <- function(input, output, session) {
               generated_themes()
             } else {
               stop(
-                "Invariant violation: Coding triggered without a theme list.",
+                "No theme list was found. Please generate or upload a theme list before starting coding.",
                 call. = FALSE
               )
             }
