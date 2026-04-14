@@ -673,7 +673,7 @@ server <- function(input, output, session) {
             )
             
             # Update status banner to error state
-            set_status("Error: Theme list format is invalid.")
+            set_status("Error: Theme list is empty or in an invalid format.")
             NULL
           }
         )
